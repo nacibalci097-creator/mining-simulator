@@ -1,0 +1,47 @@
+local orestats_module = require(game.ReplicatedStorage.Modules.OreStats)
+local events = game.ReplicatedStorage.Events
+
+local function allowedores(depth : number)
+	for orename, info in orestats_module do
+		if depth >= info.SpawnHeight.Min and depth <= info.SpawnHeight.Max then
+			return orename
+		end
+	end
+end
+
+local function generateores()
+	for i, v in workspace.Ores:GetChildren() do
+		v:Destroy()
+	end
+	
+	local startpos = Vector3.new(56.484, 0.5, 55.759)
+	
+	local x = 20
+	local y = 50
+	local z = 20
+	
+	for i = 1, x do
+		for depth = 1, y do
+			for ii = 1, z do
+				local choosenore = allowedores(depth)
+				
+				if not choosenore then continue end
+				
+				local ore = game.ReplicatedStorage.Ores[choosenore]:Clone()
+				
+				ore.Position = startpos + Vector3.new(ore.Size.X * i, -(ore.Size.Y * depth), ore.Size.Z * ii)
+				ore.Parent = workspace.Ores
+				
+				local health = Instance.new("IntValue")
+				health.Name = "Health"
+				health.Value = orestats_module[ore.Name].Health
+				health.Parent = ore
+			end
+		end
+	end
+end
+
+while true do
+	generateores()
+	task.wait(600)
+end
