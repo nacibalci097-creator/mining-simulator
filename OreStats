@@ -1,0 +1,34 @@
+local module = {
+	["Grass"] = {
+		Health = 3,
+		SpawnHeight = NumberRange.new(1, 2),
+		Value = 1,
+	},
+	
+	["Dirt"] = {
+		Health = 4,
+		SpawnHeight = NumberRange.new(3,7),
+		Value = 2,
+	},
+	
+	["Stone"] = {
+		Health = 15,
+		SpawnHeight = NumberRange.new(7, 24),
+		Value = 5,
+	},
+	
+	["Gold"] = {
+		Health = 30,
+		SpawnHeight = NumberRange.new(15,24),
+		Value = 15,
+		Chance = NumberRange.new(1,5)
+	},
+	
+	["Obsidian"] = {
+		Health = 100,
+		SpawnHeight = NumberRange.new(25,25),
+		Value = 60,
+	},
+}
+
+return module
