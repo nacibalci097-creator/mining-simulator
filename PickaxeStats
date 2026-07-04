@@ -1,0 +1,38 @@
+local module = {
+	["Wooden Pickaxe"] = {
+		Damage = 1,
+		Cooldown = 0.9,
+		Cost = 0,
+		Index = 1,
+	},
+	
+	["Stone Pickaxe"] = {
+		Damage = 2,
+		Cooldown = 0.8,
+		Cost = 10,
+		Index = 2,
+	},
+	
+	["Iron Pickaxe"] = {
+		Damage = 4,
+		Cooldown = 0.7,
+		Cost = 40,
+		Index = 3,
+	},
+	
+	["Golden Pickaxe"] = {
+		Damage = 10,
+		Cooldown = 0.6,
+		Cost = 200,
+		Index = 4,
+	},
+	
+	["Diamond Pickaxe"] = {
+		Damage = 20,
+		Cooldown = 0.4,
+		Cost = 600,
+		Index = 5,
+	},
+}
+
+return module
