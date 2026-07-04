@@ -1,0 +1,150 @@
+local tweenservice = game:GetService("TweenService")
+
+local pickaxestats_module = require(game.ReplicatedStorage.Modules.PickaxeStats)
+local orestats_module = require(game.ReplicatedStorage.Modules.OreStats)
+local getnextpickaxe_module = require(game.ReplicatedStorage.Modules.GetNextPickaxe)
+
+local events = game.ReplicatedStorage.Events
+
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+
+local gui = player.PlayerGui:WaitForChild("ScreenGui")
+
+local tool = script.Parent
+
+local mineanimation = game.ReplicatedStorage.Animations.Mine 
+local track = char.Humanoid.Animator:LoadAnimation(mineanimation)
+
+local playerdata = {
+	Pickaxe = "Wooden Pickaxe",
+	Coins = 0,
+	Backpack = {},
+}
+
+local oncooldown = false
+local oreselling = false
+
+local function updateupgframe()
+	local newpickaxe = getnextpickaxe_module(playerdata.Pickaxe)
+	
+	if not newpickaxe then
+		gui.ShopFrame.Damage.Visible = false
+		gui.ShopFrame.Cooldown.Visible = false
+		gui.ShopFrame.Upgbtn.Text = "Max"
+	end
+	
+	gui.ShopFrame.Damage.Text = "Damage --> " .. pickaxestats_module[newpickaxe].Damage
+	gui.ShopFrame.Cooldown.Text = "Cooldown --> " .. pickaxestats_module[newpickaxe].Cooldown
+	gui.ShopFrame.Upgbtn.Text = "Upgrade: $" .. pickaxestats_module[newpickaxe].Cost
+end
+
+events.UpdateData.OnClientEvent:Connect(function(data : {any})
+	playerdata = data
+	
+	local nextpickaxe, info, currentindex = getnextpickaxe_module(playerdata.Pickaxe)
+	
+	gui.BackpackFrame.Amount.Text = #playerdata.Backpack .. " / inf"
+	gui.CoinsFrame.Amount.Text = playerdata.Coins
+	
+	updateupgframe()
+end)
+
+tool.Activated:Connect(function()
+	if oncooldown then return end
+
+	local ore : Part = player:GetMouse().Target
+
+	if ore and ore.Parent == workspace.Ores and (char:GetPivot().Position - ore.Position).Magnitude <= 25 then
+		oncooldown = true
+		track:Play()
+		game.SoundService.Mine:Play()
+		
+		gui.CooldownFrame.Visible = true
+		events.MineOre:FireServer(ore)
+		
+		tweenservice:Create(
+			gui.CooldownFrame.Bar,
+			TweenInfo.new(pickaxestats_module[playerdata.Pickaxe].Cooldown, Enum.EasingStyle.Linear),
+			{Size = UDim2.fromScale(0, 1)}
+		):Play()
+		
+		if ore.Health.Value - pickaxestats_module[playerdata.Pickaxe].Damage <= 0 then
+			ore.CanCollide = false
+			ore.CanQuery = false
+			ore.Color = Color3.fromRGB(173, 173, 173)
+			ore.Material = "Neon"
+			tweenservice:Create(ore, TweenInfo.new(1), {Size = ore.Size * 2.5, Transparency = 1}):Play()
+		else
+			tweenservice:Create(ore, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true), {Size = Vector3.new(2,2,2)}):Play()
+		end
+		
+		task.wait(pickaxestats_module[playerdata.Pickaxe].Cooldown)
+		gui.CooldownFrame.Visible = false
+		gui.CooldownFrame.Bar.Size = UDim2.fromScale(1,1)
+		oncooldown = false
+	end
+end)
+
+gui.ButtonsList.Teleport.MouseButton1Click:Connect(function()
+	char:PivotTo(workspace.SpawnLocation.CFrame * CFrame.new(0,3,0))
+end)
+
+gui.ButtonsList.Sell.MouseButton1Click:Connect(function()	
+	if oreselling then return end
+	oreselling = true
+	
+	for i, v in playerdata.Backpack do
+		local template = gui.SellTemplate:Clone()
+		local xpos = math.random(0, 1000) / 1000
+		local ypos = math.random(0, 1000) / 1000
+		
+		template.Position = UDim2.fromScale(xpos, ypos)
+		template.Amount.Text = orestats_module[v].Value
+		template.Visible = true
+		template.Parent = gui
+		
+		task.defer(function()
+			task.wait(0.15)
+			local tween = tweenservice:Create(template, TweenInfo.new(0.75, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Position = UDim2.new(0.007, 0,0.299, 0)})
+			tween:Play()
+			tween.Completed:Wait()
+			template:Destroy()
+			game.SoundService.Coin:Play()
+		end)
+
+		task.wait(0.025)
+	end
+	
+	events.SellOres:FireServer()
+	oreselling = false
+end)
+
+gui.ButtonsList.Upgrade.MouseButton1Click:Connect(function()
+	gui.ShopFrame.Visible = not gui.ShopFrame.Visible
+end)
+
+gui.ShopFrame.Upgbtn.MouseButton1Click:Connect(function()
+	events.UpgradePickaxe:FireServer()
+end)
+
+updateupgframe()
+
+local selectbox = game.ReplicatedStorage.SelectPart
+
+while task.wait() do
+	local target = player:GetMouse().Target
+	
+	if target and target.Parent == workspace.Ores and (char:GetPivot().Position - target.Position).Magnitude <= 25 then
+		selectbox.Position = target.Position
+		selectbox.Parent = workspace
+		gui.OreHealthFrame.Visible = true
+		gui.OreHealthFrame.Health.Text = target.Health.Value .. " / " .. orestats_module[target.Name].Health
+		gui.OreHealthFrame.OreName.Text = target.Name
+		local size = 1 / orestats_module[target.Name].Health
+		tweenservice:Create(gui.OreHealthFrame.Bar, TweenInfo.new(0.25), {Size = UDim2.fromScale(size * target.Health.Value, 1)}):Play()
+	else
+		selectbox.Parent = nil
+		gui.OreHealthFrame.Visible = false
+	end
+end
