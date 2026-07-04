@@ -1,0 +1,16 @@
+local pickaxestats_module = require(game.ReplicatedStorage.Modules.PickaxeStats)
+local pickaxeindexes = {}
+
+for i, info in pickaxestats_module do
+	pickaxeindexes[i] = info.Index
+end
+
+return function(pickaxe : string)
+	local index = pickaxeindexes[pickaxe]
+
+	for i, v in pickaxestats_module do
+		if v.Index == index + 1 then
+			return i, v, index
+		end
+	end
+end
